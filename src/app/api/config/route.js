@@ -37,7 +37,7 @@ export async function GET() {
 export async function POST(request) {
   try {
     const config = await request.json();
-    await put('ticketConfig.json', JSON.stringify(config, null, 2), { access: 'public', addRandomSuffix: false });
+    await put('ticketConfig.json', JSON.stringify(config, null, 2), { access: 'public', addRandomSuffix: false, allowOverwrite: true });
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to save config' }, { status: 500 });

@@ -53,7 +53,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Missing subject or html content' }, { status: 400 });
     }
     
-    await put('emailConfig.json', JSON.stringify({ subject: data.subject, html: data.html }, null, 2), { access: 'public', addRandomSuffix: false });
+    await put('emailConfig.json', JSON.stringify({ subject: data.subject, html: data.html }, null, 2), { access: 'public', addRandomSuffix: false, allowOverwrite: true });
     
     return NextResponse.json({ success: true });
   } catch (error) {

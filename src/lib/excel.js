@@ -13,7 +13,7 @@ async function getExcelBuffer() {
 }
 
 async function saveExcelBuffer(buffer) {
-  await put('participants.xlsx', buffer, { access: 'public', addRandomSuffix: false });
+  await put('participants.xlsx', buffer, { access: 'public', addRandomSuffix: false, allowOverwrite: true });
 }
 
 export async function getTeams(filePath) {

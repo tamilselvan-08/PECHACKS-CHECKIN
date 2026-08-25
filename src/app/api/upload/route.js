@@ -20,12 +20,12 @@ export async function POST(request) {
     } else if (type === 'template') {
       const ext = file.name.split('.').pop();
       fileName = `template.${ext}`;
-      await put('template.meta', ext, { access: 'public', addRandomSuffix: false });
+      await put('template.meta', ext, { access: 'public', addRandomSuffix: false, allowOverwrite: true });
     } else {
       return NextResponse.json({ error: 'Invalid type' }, { status: 400 });
     }
 
-    await put(fileName, buffer, { access: 'public', addRandomSuffix: false });
+    await put(fileName, buffer, { access: 'public', addRandomSuffix: false, allowOverwrite: true });
 
     return NextResponse.json({ success: true, message: 'Uploaded successfully' });
   } catch (error) {
