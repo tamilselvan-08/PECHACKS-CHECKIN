@@ -51,13 +51,15 @@ export async function sendTicketEmail(team, pdfBuffer) {
   `;
 
   try {
-    const fs = require('fs/promises');
-    const path = require('path');
-    const configPath = path.join(process.cwd(), 'data', 'emailConfig.json');
-    const configData = await fs.readFile(configPath, 'utf-8');
-    const config = JSON.parse(configData);
+    const { list } = require('@vercel/blob');
+    const { blobs } = await list({ prefix: 'emailConfig.json' });
+    const blob = blobs.find(b => b.pathname === 'emailConfig.json');
+    if (blob) {
+      const res = await fetch(blob.downloadUrl || blob.url);
+      if (res.ok) {
+        const config = await res.json();
 
-    if (config.subject) {
+        if (config.subject) {
       subject = config.subject
         .replaceAll('{{teamName}}', team.name || '')
         .replaceAll('{{teamId}}', team.id || '')
@@ -73,6 +75,7 @@ export async function sendTicketEmail(team, pdfBuffer) {
         .replaceAll('{{leadName}}', team.leadName || 'Team Lead')
         .replaceAll('{{eventName}}', eventName)
         .replaceAll('{{eventDate}}', eventDate);
+      }
     }
   } catch (e) {
     // Fall back to default if file doesn't exist

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
+import { put } from '@vercel/blob';
 
 export async function POST(request) {
   try {
@@ -15,22 +14,18 @@ export async function POST(request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const dataDir = path.join(process.cwd(), 'data');
-    await fs.mkdir(dataDir, { recursive: true });
-
     let fileName = '';
     if (type === 'excel') {
       fileName = 'participants.xlsx';
     } else if (type === 'template') {
       const ext = file.name.split('.').pop();
       fileName = `template.${ext}`;
-      await fs.writeFile(path.join(dataDir, 'template.meta'), ext);
+      await put('template.meta', ext, { access: 'public', addRandomSuffix: false });
     } else {
       return NextResponse.json({ error: 'Invalid type' }, { status: 400 });
     }
 
-    const filePath = path.join(dataDir, fileName);
-    await fs.writeFile(filePath, buffer);
+    await put(fileName, buffer, { access: 'public', addRandomSuffix: false });
 
     return NextResponse.json({ success: true, message: 'Uploaded successfully' });
   } catch (error) {

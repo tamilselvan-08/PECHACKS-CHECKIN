@@ -1,8 +1,5 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
-
-const configPath = path.join(process.cwd(), 'data', 'emailConfig.json');
+import { list, put } from '@vercel/blob';
 
 const defaultSubject = 'Your Team Ticket — {{teamName}} ({{teamId}})';
 
@@ -34,19 +31,17 @@ const defaultHtml = `
 
 export async function GET() {
   try {
-    const data = await fs.readFile(configPath, 'utf-8');
-    return NextResponse.json(JSON.parse(data));
-  } catch (error) {
-    if (error.code === 'ENOENT') {
-      const defaultConfig = {
-        subject: defaultSubject,
-        html: defaultHtml
-      };
-      // Try to create the data directory if it doesn't exist
-      try { await fs.mkdir(path.join(process.cwd(), 'data'), { recursive: true }); } catch (e) {}
-      await fs.writeFile(configPath, JSON.stringify(defaultConfig, null, 2));
-      return NextResponse.json(defaultConfig);
+    const { blobs } = await list({ prefix: 'emailConfig.json' });
+    const blob = blobs.find(b => b.pathname === 'emailConfig.json');
+    if (blob) {
+      const res = await fetch(blob.downloadUrl || blob.url);
+      if (res.ok) {
+        return NextResponse.json(await res.json());
+      }
     }
+    
+    return NextResponse.json({ subject: defaultSubject, html: defaultHtml });
+  } catch (error) {
     return NextResponse.json({ error: 'Failed to read email config' }, { status: 500 });
   }
 }
@@ -58,9 +53,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Missing subject or html content' }, { status: 400 });
     }
     
-    // Try to create the data directory if it doesn't exist
-    try { await fs.mkdir(path.join(process.cwd(), 'data'), { recursive: true }); } catch (e) {}
-    await fs.writeFile(configPath, JSON.stringify({ subject: data.subject, html: data.html }, null, 2));
+    await put('emailConfig.json', JSON.stringify({ subject: data.subject, html: data.html }, null, 2), { access: 'public', addRandomSuffix: false });
     
     return NextResponse.json({ success: true });
   } catch (error) {

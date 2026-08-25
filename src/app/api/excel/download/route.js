@@ -1,18 +1,17 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
-import lockfile from 'proper-lockfile';
+import { list } from '@vercel/blob';
 
 export async function GET() {
-  const dataDir = path.join(process.cwd(), 'data');
-  const filePath = path.join(dataDir, 'participants.xlsx');
-
-  let release;
   try {
-    release = await lockfile.lock(filePath, { retries: { retries: 5, minTimeout: 100, maxTimeout: 500 } });
-    const fileBuffer = await fs.readFile(filePath);
+    const { blobs } = await list({ prefix: 'participants.xlsx' });
+    const blob = blobs.find(b => b.pathname === 'participants.xlsx');
+    if (!blob) throw new Error("not found");
     
-    // We must return a proper binary response
+    const res = await fetch(blob.downloadUrl || blob.url);
+    if (!res.ok) throw new Error("Failed to fetch excel file from Blob storage");
+    
+    const fileBuffer = await res.arrayBuffer();
+    
     return new NextResponse(fileBuffer, {
       status: 200,
       headers: {
@@ -22,11 +21,9 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Download error:', error);
-    if (error.code === 'ENOENT') {
+    if (error.message.includes('not found')) {
       return NextResponse.json({ success: false, error: 'No Excel file found. Upload one first.' }, { status: 404 });
     }
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  } finally {
-    if (release) await release();
   }
 }

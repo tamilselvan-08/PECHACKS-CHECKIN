@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
-import { getTeams, updateTeamStatus } from '@/lib/excel';
+import { getTeams, batchUpdateTeamStatus } from '@/lib/excel';
 import { generateTicketPdf } from '@/lib/pdf';
 import { sendTicketEmail } from '@/lib/email';
-import path from 'path';
-import fs from 'fs/promises';
 import pLimit from 'p-limit';
+import { list } from '@vercel/blob';
 
 export async function POST(request) {
   try {
@@ -13,19 +12,31 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Invalid teamIds' }, { status: 400 });
     }
 
-    const dataDir = path.join(process.cwd(), 'data');
-    const excelPath = path.join(dataDir, 'participants.xlsx');
-    
+    // Get template meta and buffer from Blob
     let ext = 'png';
-    try { ext = await fs.readFile(path.join(dataDir, 'template.meta'), 'utf-8'); } catch(e) {}
-    const templatePath = path.join(dataDir, `template.${ext}`);
-    const templateBuffer = await fs.readFile(templatePath);
+    const { blobs } = await list();
+    const metaBlob = blobs.find(b => b.pathname === 'template.meta');
+    if (metaBlob) {
+      const metaRes = await fetch(metaBlob.downloadUrl || metaBlob.url);
+      if (metaRes.ok) ext = await metaRes.text();
+    }
+    
+    const templateName = `template.${ext}`;
+    const templateBlob = blobs.find(b => b.pathname === templateName);
+    if (!templateBlob) {
+      throw new Error("Template image not found in Blob storage");
+    }
+    const templateRes = await fetch(templateBlob.downloadUrl || templateBlob.url);
+    if (!templateRes.ok) throw new Error("Failed to fetch template image");
+    const templateBuffer = Buffer.from(await templateRes.arrayBuffer());
 
-    const teams = await getTeams(excelPath);
+    const teams = await getTeams(); // no longer needs excelPath
     
     const limit = pLimit(5); 
     let successCount = 0;
     let failCount = 0;
+    
+    const updatesArray = [];
 
     const tasks = teamIds.map(teamId => limit(async () => {
       const team = teams.find(t => t.id === teamId);
@@ -36,22 +47,35 @@ export async function POST(request) {
       
       try {
         const pdfBuffer = await generateTicketPdf(team, templateBuffer, ext);
-        await updateTeamStatus(excelPath, teamId, { generated: true });
         
         await sendTicketEmail(team, pdfBuffer);
-        await updateTeamStatus(excelPath, teamId, { 
-          sentStatus: 'SENT', 
-          sentAt: new Date().toLocaleString() 
+        
+        updatesArray.push({
+          teamId,
+          updates: {
+            generated: true,
+            sentStatus: 'SENT',
+            sentAt: new Date().toLocaleString()
+          }
         });
         successCount++;
       } catch (err) {
         console.error(`Bulk email failed for ${teamId}:`, err);
-        await updateTeamStatus(excelPath, teamId, { sentStatus: 'FAILED' });
+        updatesArray.push({
+          teamId,
+          updates: {
+            sentStatus: 'FAILED'
+          }
+        });
         failCount++;
       }
     }));
 
     await Promise.all(tasks);
+
+    if (updatesArray.length > 0) {
+      await batchUpdateTeamStatus(null, updatesArray);
+    }
 
     return NextResponse.json({ success: true, successCount, failCount });
   } catch (error) {

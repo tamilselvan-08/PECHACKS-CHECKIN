@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getTeams, updateTeamStatus } from '@/lib/excel';
 import { generateTicketPdf } from '@/lib/pdf';
-import path from 'path';
-import fs from 'fs/promises';
+import { list } from '@vercel/blob';
 
 export async function GET(request) {
   try {
@@ -10,24 +9,23 @@ export async function GET(request) {
     const teamId = searchParams.get('teamId');
     if (!teamId) return new NextResponse('Missing teamId', { status: 400 });
 
-    const dataDir = path.join(process.cwd(), 'data');
-    const excelPath = path.join(dataDir, 'participants.xlsx');
-    
     let ext = 'png';
-    try {
-      ext = await fs.readFile(path.join(dataDir, 'template.meta'), 'utf-8');
-    } catch(e) {}
-    
-    const templatePath = path.join(dataDir, `template.${ext}`);
-
-    let templateBuffer;
-    try {
-      templateBuffer = await fs.readFile(templatePath);
-    } catch {
-      return new NextResponse('Template image not uploaded', { status: 404 });
+    const { blobs } = await list();
+    const metaBlob = blobs.find(b => b.pathname === 'template.meta');
+    if (metaBlob) {
+      const metaRes = await fetch(metaBlob.downloadUrl || metaBlob.url);
+      if (metaRes.ok) ext = await metaRes.text();
     }
+    
+    const templateName = `template.${ext}`;
+    const templateBlob = blobs.find(b => b.pathname === templateName);
+    if (!templateBlob) return new NextResponse('Template image not uploaded', { status: 404 });
+    
+    const templateRes = await fetch(templateBlob.downloadUrl || templateBlob.url);
+    if (!templateRes.ok) throw new Error("Failed to fetch template image");
+    const templateBuffer = Buffer.from(await templateRes.arrayBuffer());
 
-    const teams = await getTeams(excelPath);
+    const teams = await getTeams();
     const team = teams.find(t => t.id === teamId);
     if (!team) return new NextResponse('Team not found', { status: 404 });
 

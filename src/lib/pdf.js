@@ -1,7 +1,6 @@
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import QRCode from 'qrcode';
-import fs from 'fs/promises';
-import path from 'path';
+import { list } from '@vercel/blob';
 
 // Helper to convert hex color to RGB
 function hexToRgb(hex) {
@@ -30,10 +29,18 @@ export async function generateTicketPdf(team, templateImageBuffer, imageType = '
   
   let config;
   try {
-    const dataDir = path.join(process.cwd(), 'data');
-    const configPath = path.join(dataDir, 'ticketConfig.json');
-    const data = await fs.readFile(configPath, 'utf-8');
-    config = JSON.parse(data);
+    const { blobs } = await list({ prefix: 'ticketConfig.json' });
+    const blob = blobs.find(b => b.pathname === 'ticketConfig.json');
+    if (blob) {
+      const res = await fetch(blob.downloadUrl || blob.url);
+      if (res.ok) {
+        config = await res.json();
+      } else {
+        throw new Error('Fetch failed');
+      }
+    } else {
+      throw new Error('Not found');
+    }
   } catch {
     // Default config
     config = {

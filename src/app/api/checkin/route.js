@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { checkInTeam } from '@/lib/excel';
-import path from 'path';
 
 export async function POST(request) {
   try {
@@ -10,10 +9,7 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: 'Missing teamId or presentMembers array' }, { status: 400 });
     }
 
-    const dataDir = path.join(process.cwd(), 'data');
-    const filePath = path.join(dataDir, 'participants.xlsx');
-
-    const count = await checkInTeam(filePath, teamId, presentMembers);
+    const count = await checkInTeam(null, teamId, presentMembers);
 
     if (count > 0) {
       return NextResponse.json({ success: true, message: `Successfully checked in ${count} members for Team ${teamId}` });

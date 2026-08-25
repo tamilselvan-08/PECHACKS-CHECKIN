@@ -1,17 +1,23 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
+import { list } from '@vercel/blob';
 
 export async function GET() {
   try {
-    const dataDir = path.join(process.cwd(), 'data');
     let ext = 'png';
-    try {
-      ext = await fs.readFile(path.join(dataDir, 'template.meta'), 'utf-8');
-    } catch (e) {}
+    const { blobs } = await list();
+    const metaBlob = blobs.find(b => b.pathname === 'template.meta');
+    if (metaBlob) {
+      const metaRes = await fetch(metaBlob.downloadUrl || metaBlob.url);
+      if (metaRes.ok) ext = await metaRes.text();
+    }
 
-    const templatePath = path.join(dataDir, `template.${ext}`);
-    const buffer = await fs.readFile(templatePath);
+    const templateName = `template.${ext}`;
+    const templateBlob = blobs.find(b => b.pathname === templateName);
+    if (!templateBlob) throw new Error("not found");
+
+    const res = await fetch(templateBlob.downloadUrl || templateBlob.url);
+    if (!res.ok) throw new Error("not found");
+    const buffer = await res.arrayBuffer();
 
     return new NextResponse(buffer, {
       headers: {
