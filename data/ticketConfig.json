@@ -1,0 +1,50 @@
+{
+  "teamName": {
+    "x": 17.639076244975808,
+    "y": 24.31704441417345,
+    "size": 50,
+    "color": "#ffffff",
+    "visible": true
+  },
+  "teamId": {
+    "x": 13.568520188442928,
+    "y": 33.55136552368412,
+    "size": 50,
+    "color": "#ffffff",
+    "visible": true
+  },
+  "domain": {
+    "x": 27.27272350837841,
+    "y": 33.85917740153913,
+    "size": 40,
+    "color": "#ffffff",
+    "visible": true
+  },
+  "leadName": {
+    "x": 13.980094947625155,
+    "y": 55.79602160857091,
+    "size": 30,
+    "color": "#f5f5f5",
+    "visible": true
+  },
+  "membersTitle": {
+    "x": 1.144280125252643,
+    "y": 100,
+    "size": 25,
+    "color": "#faf9f9",
+    "visible": true
+  },
+  "membersList": {
+    "x": 12.223393208271748,
+    "y": 73.46323076068948,
+    "size": 50,
+    "color": "#3f2222",
+    "visible": true
+  },
+  "qrCode": {
+    "x": 33.14189395389041,
+    "y": 73.2094942275494,
+    "size": 200,
+    "visible": true
+  }
+}

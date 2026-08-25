@@ -3,20 +3,28 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -H 0.0.0.0",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -H 0.0.0.0",
     "lint": "eslint"
   },
   "dependencies": {
+    "exceljs": "^4.4.0",
+    "html5-qrcode": "^2.3.8",
+    "jose": "^6.2.10",
+    "jszip": "^3.10.1",
+    "lucide-react": "^1.33.0",
     "next": "16.3.1",
+    "nodemailer": "^9.0.5",
+    "p-limit": "^7.3.1",
+    "pdf-lib": "^1.17.1",
+    "proper-lockfile": "^4.1.2",
+    "qrcode": "^1.5.4",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
     "eslint": "^9",
-    "eslint-config-next": "16.3.1",
-    "tailwindcss": "^4"
+    "eslint-config-next": "16.3.1"
   }
 }
