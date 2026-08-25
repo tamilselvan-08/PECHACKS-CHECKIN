@@ -77,6 +77,7 @@ export async function sendTicketEmail(team, pdfBuffer) {
         .replaceAll('{{eventDate}}', eventDate);
       }
     }
+    }
   } catch (e) {
     // Fall back to default if file doesn't exist
   }
